@@ -3,6 +3,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import analyze, plans
+
 app = FastAPI(title="AI Knowledge Orchestrator")
 
 # CORS para desarrollo local
@@ -13,6 +15,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(analyze.router)
+app.include_router(plans.router)
 
 
 @app.get("/health")
