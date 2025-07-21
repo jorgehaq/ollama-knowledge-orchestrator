@@ -1,0 +1,37 @@
+
+You are a backend engineering assistant.
+
+Your task is to extract a learning roadmap from the following markdown plan.
+Follow this exact structure (JSON only):
+
+{
+  "phases": [
+    {
+      "name": "Fase 1",
+      "sprints": [
+        {
+          "title": "Sprint 1",
+          "goals": [
+            "Write goal 1",
+            "Write goal 2"
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+Rules:
+- Use each markdown H2 (##) as a new phase name.
+- Use each bullet point (-) as an individual goal.
+- Group goals into logical sprints of 2–3 goals each.
+- Use the bullet point text directly as-is.
+
+ONLY RETURN JSON. No comments. No markdown. No explanations.
+
+### MARKDOWN PLAN:
+
+
+- Aprender Python moderno
+- Dominar FastAPI
+- Comprender Pydantic

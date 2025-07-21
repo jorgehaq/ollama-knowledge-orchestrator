@@ -6,13 +6,13 @@ import httpx
 from fastapi import HTTPException
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "llama2"  # O el modelo que tengas cargado en Ollama
-MODEL_NAME = "mistral"  # O el modelo que tengas cargado en Ollama
+MODEL_NAME = "mistral"  # Cambia si deseas otro modelo
 
 PROMPT_TEMPLATE = """
-You are an AI backend assistant.
+You are a backend engineering assistant.
 
-Read the following markdown learning plan and return only a strict JSON like this:
+Your task is to extract a learning roadmap from the following markdown plan.
+Follow this exact structure (JSON only):
 
 {{
   "phases": [
@@ -22,7 +22,8 @@ Read the following markdown learning plan and return only a strict JSON like thi
         {{
           "title": "Sprint 1",
           "goals": [
-            "Learn FastAPI"
+            "Write goal 1",
+            "Write goal 2"
           ]
         }}
       ]
@@ -30,53 +31,43 @@ Read the following markdown learning plan and return only a strict JSON like thi
   ]
 }}
 
-Return only valid JSON. No explanations. No Markdown. Just the JSON object.
+Rules:
+- Use each markdown H2 (##) as a new phase name.
+- Use each bullet point (-) as an individual goal.
+- Group goals into logical sprints of 2–3 goals each.
+- Use the bullet point text directly as-is.
 
-### PLAN:
-{{plan_content}}
+ONLY RETURN JSON. No comments. No markdown. No explanations.
+
+### MARKDOWN PLAN:
+{plan_content}
 """
+
+
+async def analyze_prompt(prompt: str) -> dict:
+    payload = {"model": MODEL_NAME, "prompt": prompt, "stream": False}
+
+    print("📤 Sending request to Ollama with payload:")
+    print(payload)
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(OLLAMA_URL, json=payload, timeout=60)
+        response.raise_for_status()
+        result = response.json()
+
+        raw_response = result.get("response", "").strip()
+        print("📥 Raw response:")
+        print(raw_response[:300])
+
+        return json.loads(raw_response)
+
+    except Exception as e:
+        print("ERROR:")
+        print(str(e))
+        raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")
 
 
 async def analyze_plan(markdown_text: str) -> dict:
     prompt = PROMPT_TEMPLATE.format(plan_content=markdown_text)
-
-    payload = {"model": MODEL_NAME, "prompt": prompt, "stream": False}
-
-    try:
-        async with httpx.AsyncClient() as client:
-            print("📤 Sending request to Ollama with payload:")
-            print(payload)
-            response = await client.post(OLLAMA_URL, json=payload, timeout=30)
-
-        response.raise_for_status()
-
-        if not response.text.strip():
-            print("❌ Ollama returned an empty response.")
-            raise HTTPException(
-                status_code=500, detail="Ollama returned empty response"
-            )
-
-        print("📤 Raw HTTP response text:")
-        print(response.text)
-        result = response.json()
-
-        raw_response = result.get("response", "").strip()
-
-        print("📥 Raw response:")
-        print(raw_response)  # para no imprimir todo
-
-        try:
-            parsed = json.loads(raw_response)
-
-        except json.JSONDecodeError:
-            print("❌ Failed to parse JSON from Ollama:")
-            print(response.text)
-            print("❌ Ollama returned non-JSON:")
-            print(raw_response)
-            raise HTTPException(status_code=500, detail="AI returned invalid JSON")
-
-        return parsed
-
-    except Exception as e:
-        print("ERROR:", str(e))
-        raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")
+    return await analyze_prompt(prompt)

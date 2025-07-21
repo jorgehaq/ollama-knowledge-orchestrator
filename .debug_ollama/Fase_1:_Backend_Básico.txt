@@ -1,0 +1,5 @@
+
+
+- Aprender Python moderno
+- Dominar FastAPI
+- Comprender Pydantic
